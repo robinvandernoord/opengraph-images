@@ -14,17 +14,20 @@ class Context(typing.TypedDict):
     template: NotRequired[str]
 
 
+OG_WIDTH = 1200
+OG_HEIGHT = 630
+
+
 def generate_image(
     ctx: Context
 ):
     options = {
         'format': 'png',
         # opengraph image size is 1200x630:
-        'width': '1200',
-        'crop-w': '1200',
-        'crop-h': '630',
-        # 'crop-x': '20',
-        # 'crop-y': '20',
+        'width': OG_WIDTH,
+        "height": OG_HEIGHT,
+        'crop-w': OG_WIDTH,
+        'crop-h': OG_HEIGHT,
         'encoding': "UTF-8",
     }
 

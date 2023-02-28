@@ -2,7 +2,7 @@
 
 ![](example.png)
 
-Requires `wkhtmltopdf` to be installed (`sudo apt install -y wkhtmltopdf`).
+Requires `wkhtmltopdf` to be installed (`sudo apt install -y wkhtmltopdf` or a binary from [https://wkhtmltopdf.org/downloads.html](https://wkhtmltopdf.org/downloads.html)).
 
 By default, the template is pretty simple as can be seen above. 
 `template.html` can be modified or a different option can be passed to `generate_image`.
