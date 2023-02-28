@@ -1,0 +1,93 @@
+<style>
+    @import 'https://fonts.googleapis.com/css2?family=Lato&family=Merriweather&display=swap';
+
+    :root {
+        --width: 1200px;
+        --height: 630px;
+    }
+
+    html, body {
+        height: var(--height);
+        width: var(--width);
+        background-color: white;
+        overflow: hidden;
+        margin: 0;
+        /*border: 10px solid red;*/
+    }
+
+    main, .sections, .section {
+        height: 100%;
+        width: 100%;
+    }
+
+    /*main {*/
+    /*    margin: 20px;*/
+    /*}*/
+
+    h1 {
+        font-family: Merriweather, serif;
+        font-weight: bold;
+    }
+
+    .sections {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+
+    .section {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+    }
+
+    .img-section {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 2 1 auto;
+        max-width: calc(var(--width) * 2 / 3);
+    }
+
+    .thumbnail {
+        height: var(--height);
+        max-width: calc(var(--width) * 2 / 3);
+        object-fit: cover;
+
+        /*filter: blur(3px)*/
+    }
+
+    .text-section {
+        flex: 1 1 auto;
+        padding: 0 20px;
+        text-align: center;
+        justify-content: flex-start;
+        /*max-width: calc(var(--width) * 1 / 3);*/
+    }
+
+    .icon {
+        padding: 40px 0;
+        height: 100px;
+    }
+
+</style>
+
+<html>
+<body>
+<main>
+    <div class="sections">
+        <div class="section half text-section">
+            <img class="icon" src="[[=icon]]"/>
+            <h1>[[=title]]</h1>
+        </div>
+        <div class="section half img-section">
+            <img class="thumbnail"
+                 src="[[=img]]"/>
+
+        </div>
+    </div>
+</main>
+</body>
+</html>
