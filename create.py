@@ -42,9 +42,9 @@ def generate_image(
 def demo():
     img = generate_image(
         dict(
-            icon="https://news.su6.nl/static/icons/nu.svg",
+            img="https://news.su6.nl/static/icons/nu.svg",
             title="Door deze ontdekking gaat je telefoon straks tot twee keer zo lang mee",
-            img="https://media.nu.nl/m/zh2x98aada6s_sqr256.jpg/door-deze-ontdekking-gaat-je-telefoon-straks-tot-twee-keer-zo-lang-mee.jpg",
+            icon="https://media.nu.nl/m/zh2x98aada6s_sqr256.jpg/door-deze-ontdekking-gaat-je-telefoon-straks-tot-twee-keer-zo-lang-mee.jpg",
         )
     )
 
