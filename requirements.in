@@ -1,0 +1,9 @@
+imgkit
+yatl
+typing_extensions
+base58
+google-cloud-texttospeech
+diskcache
+
+# server:
+flask

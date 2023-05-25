@@ -1,94 +1,31 @@
-import collections
-import json
-import os
-import time
-from hashlib import sha1
+from flask import Flask, request, abort, Response
 
-from flask import Flask, Response, request
-
-from .lib.create import generate_image, Context
-
-if False:
-    from ..create import generate_image, Context
+from .opengraph import _generate
+from .tts import tts, Fresh, Cached
 
 app = Flask(__name__)
-
-A_DAY = 60 * 60 * 24
-
-
-def remove_old_tmp():
-    for f in os.listdir("/tmp"):
-        print("checking", f)
-        if f.startswith("__cached__"):
-            if os.path.getmtime(os.path.join("/tmp", f)) < time.time() - A_DAY:
-                print("removing", f)
-                os.remove(os.path.join("/tmp", f))
-                continue
+app.url_map.strict_slashes = False
 
 
-def remove_all_existing_tmp():
-    print("Removing all old")
-    # sources (according to copilot):
-    #   https://stackoverflow.com/a/185941 and https://stackoverflow.com/a/185936
-    for f in os.listdir("/tmp"):
-        if f.startswith("__cached__"):
-            os.remove(os.path.join("/tmp", f))
+#######################
+#      OPENGRAPH      #
+#######################
 
 
-remove_all_existing_tmp()
-
-
-def get_path(hash):
-    return os.path.join(f"/tmp", f"__cached__{hash}.png")
-
-
-def ctx_to_hash(ctx: Context):
-    ctx_str = json.dumps(collections.OrderedDict(sorted(ctx.items())))
-    ctx_bytes = ctx_str.encode()
-    ctx_hash = sha1(ctx_bytes)
-
-    return ctx_hash.hexdigest()
-
-
-def ctx_to_hash_path(ctx: Context):
-    ctx_hex = ctx_to_hash(ctx)
-
-    return get_path(ctx_hex)
-
-
-def _cache_generate(ctx: Context):
-    # cron: docker-compose restart nightly to empty old cache
-
-    hash_path = ctx_to_hash_path(ctx)
-
-    if os.path.exists(hash_path):
-        with open(hash_path, "rb") as f:
-            return f.read()
-
-    img = generate_image(ctx)
-
-    with open(hash_path, "wb") as f:
-        f.write(img)
-
-    # cleanup disk:
-    remove_old_tmp()
-
-    return img
-
-
-def _generate(ctx: Context):
-    resp = Response(_cache_generate(ctx))
-    resp.headers['Content-Type'] = 'image/png'
-    return resp
-
-
-@app.route('/', methods=["GET"])
+@app.route("/", methods=["GET"])
 def home():
-    return _generate({
-        "title": "Door deze ontdekking gaat je telefoon straks tot twee keer zo lang mee",
-        "icon": "https://news.su6.nl/static/icons/nu.svg",
-        "img": "https://media.nu.nl/m/zh2x98aada6s_sqr256.jpg/door-deze-ontdekking-gaat-je-telefoon-straks-tot-twee-keer-zo-lang-mee.jpg",
-    })
+    return "Possible Routes: /generate, /demo ; /tts"
+
+
+@app.route("/demo", methods=["GET"])
+def demo():
+    return _generate(
+        {
+            "title": "Door deze ontdekking gaat je telefoon straks tot twee keer zo lang mee",
+            "icon": "https://news.su6.nl/static/icons/nu.svg",
+            "img": "https://media.nu.nl/m/zh2x98aada6s_sqr256.jpg/door-deze-ontdekking-gaat-je-telefoon-straks-tot-twee-keer-zo-lang-mee.jpg",
+        }
+    )
 
 
 @app.route("/", methods=["POST"])
@@ -96,3 +33,69 @@ def generate():
     data = request.get_json()
 
     return _generate(data)
+
+
+#######################
+#         TTS         #
+#######################
+
+
+@app.route("/tts", methods=["GET", "POST"])
+def home_tts():
+    return (
+        "Please give plain text (separated by _ instead of spaces) "
+        "or base64 (with '+' replaced with '.', '/' replaced with '_' and '=' replaced with '-') "
+        "or base58 "
+        "to this endpoint. "
+        "Example: /tts/hi, /tts/b64/aGk-, /tts/b58/8wr",
+        400,
+    )
+
+
+def _tts(possibly_encoded_text, encoding):
+    try:
+        if not possibly_encoded_text:
+            raise abort(404, "Missing Text!")
+
+        result = tts(possibly_encoded_text, encoding)
+
+        match result:
+            case Fresh(content):
+                x_status = "fresh"
+            case Cached(content):
+                x_status = "cached"
+            case _:
+                # Empty(_)
+                raise ValueError("No Content!")
+
+        response = Response(content, content_type="audio/mp3")
+
+        response.headers["Content-Type"] = "audio/mp3"
+        # fix duration:
+        response.headers["Accept-Ranges"] = "bytes"
+        response.headers["Content-Range"] = "bytes 0-"
+        response.headers["Content-Disposition"] = "inline; filename=" + "tts.wav"
+        response.headers["X-Status"] = x_status
+    except Exception as e:
+        raise abort(400, "Invalid Request!") from e
+    return response
+
+
+# @app.route("/tts/<possibly_encoded_text>", methods=["GET", "POST"])
+# def generate_tts(possibly_encoded_text):
+#     return _tts(possibly_encoded_text)
+
+
+@app.route("/tts/<text>", methods=["GET", "POST"])
+def generate_tts_raw(text):
+    return _tts(text, encoding=None)
+
+
+@app.route("/tts/b64/<encoded_text>", methods=["GET", "POST"])
+def generate_tts_b64(encoded_text):
+    return _tts(encoded_text, encoding="b64")
+
+
+@app.route("/tts/b58/<encoded_text>", methods=["GET", "POST"])
+def generate_tts_b58(encoded_text):
+    return _tts(encoded_text, encoding="b58")

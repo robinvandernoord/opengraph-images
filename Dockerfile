@@ -8,8 +8,8 @@ RUN pip install -r /tmp/requirements.txt
 RUN mkdir /code
 WORKDIR /code
 
+COPY private /private
 COPY server /code/server
-COPY create.py /code/server/lib/create.py
 COPY template.html /code/
 
 
