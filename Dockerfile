@@ -15,4 +15,5 @@ COPY template.html /code/
 
 EXPOSE 5000
 
-CMD ["flask", "--app", "server", "run", "--host", "0.0.0.0", "--port", "5000"]
+#CMD ["flask", "--app", "server", "run", "--host", "0.0.0.0", "--port", "5000"]
+CMD ["flask", "--app", "server", "run", "--host", "0.0.0.0", "--port", "5000", "--debug"]

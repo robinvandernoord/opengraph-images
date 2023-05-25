@@ -1,3 +1,5 @@
+import sys
+
 from flask import Flask, request, abort, Response
 
 from .opengraph import _generate
@@ -47,7 +49,7 @@ def home_tts():
         "or base64 (with '+' replaced with '.', '/' replaced with '_' and '=' replaced with '-') "
         "or base58 "
         "to this endpoint. "
-        "Example: /tts/hi, /tts/b64/aGk-, /tts/b58/8wr",
+        "Example: /tts/raw/hi, /tts/b64/aGk-, /tts/b58/8wr",
         400,
     )
 
@@ -77,16 +79,24 @@ def _tts(possibly_encoded_text, encoding):
         response.headers["Content-Disposition"] = "inline; filename=" + "tts.wav"
         response.headers["X-Status"] = x_status
     except Exception as e:
+        print(e, file=sys.stderr)
         raise abort(400, "Invalid Request!") from e
     return response
 
 
-# @app.route("/tts/<possibly_encoded_text>", methods=["GET", "POST"])
-# def generate_tts(possibly_encoded_text):
-#     return _tts(possibly_encoded_text)
+@app.route("/tts/<_>", methods=["GET", "POST"])
+def generate_tts(_):
+    print("Received:", _, file=sys.stderr)
+    abort(400, "you NEED to specify encoding type! (raw, b58 or b53")
 
 
-@app.route("/tts/<text>", methods=["GET", "POST"])
+# @app.route("/tts/<text_or_b58>", methods=["GET", "POST"])
+# def generate_tts_guess(text_or_b58):
+#     decoded = guess_encoding(text_or_b58, options=('b58', None))
+#     return _tts(decoded, encoding=None)
+
+
+@app.route("/tts/raw/<text>", methods=["GET", "POST"])
 def generate_tts_raw(text):
     return _tts(text, encoding=None)
 

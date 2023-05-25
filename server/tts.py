@@ -1,3 +1,4 @@
+# import contextlib
 import os
 import typing
 from base64 import b64decode
@@ -108,6 +109,25 @@ def synthesize_text(text: bytes | str) -> Result[bytes]:
     return Fresh(content)
 
 
+def b64_decode_url(encoded_text: str):
+    """
+    URL-safe base64 variant
+    """
+    return b64decode(encoded_text.replace(".", "+").replace("_", "/").replace("-", "="))
+
+
+# def guess_encoding(possibly_encoded: str, options: tuple):
+#     if "b64" in options:
+#         with contextlib.suppress(Exception):
+#             return b64_decode_url(possibly_encoded)
+#     if "b58" in options:
+#         with contextlib.suppress(Exception):
+#             return b58decode(possibly_encoded)
+#
+#     # no other option than string!
+#     return possibly_encoded
+
+
 def tts(
     possibly_encoded_text: bytes | str,
     encoding: typing.Literal["b58", "b64", None] = None,
@@ -115,11 +135,7 @@ def tts(
     text: bytes | str | None = None
     match encoding:
         case "b64":
-            text: bytes = b64decode(
-                possibly_encoded_text.replace(".", "+")
-                .replace("_", "/")
-                .replace("-", "=")
-            )
+            text: bytes = b64_decode_url(possibly_encoded_text)
         case "b58":
             text: bytes = b58decode(possibly_encoded_text)
         case None:
