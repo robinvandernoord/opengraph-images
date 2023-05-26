@@ -1,14 +1,12 @@
-# import contextlib
 import os
 import typing
 from base64 import b64decode
-from pathlib import Path
 
 from base58 import b58decode
 from diskcache import Index
 from google.cloud import texttospeech
 from google.cloud.texttospeech_v1 import SynthesizeSpeechResponse
-from result import Ok, Err
+from result import Err, Ok
 
 from .helpers import simple_hash
 

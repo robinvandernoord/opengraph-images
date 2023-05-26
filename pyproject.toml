@@ -47,6 +47,9 @@ skips = [
     "B108"  # hard coded /tmp/... files are fine for me tbh
 ]
 
+[tool.isort]
+profile = "black"
+extend_skip_glob = ["*.bak/*"]
 
 # make this a meta package: not a library but simply allow me to run `pip install .[dev]`
 [build-system]

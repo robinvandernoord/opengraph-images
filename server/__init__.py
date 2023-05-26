@@ -1,10 +1,10 @@
 import sys
 import typing
 
-from flask import Flask, request, abort, Response
+from flask import Flask, Response, abort, request
 
 from .opengraph import _generate
-from .tts import tts, Fresh, Cached, EncodingOptions
+from .tts import Cached, EncodingOptions, Fresh, tts
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
