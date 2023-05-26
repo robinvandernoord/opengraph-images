@@ -4,6 +4,7 @@ typing_extensions
 base58
 google-cloud-texttospeech
 diskcache
+result
 
 # server:
 flask

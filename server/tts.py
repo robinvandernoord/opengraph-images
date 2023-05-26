@@ -2,17 +2,18 @@
 import os
 import typing
 from base64 import b64decode
-from dataclasses import dataclass
 from hashlib import sha1
 
 from base58 import b58decode
 from diskcache import Index
 from google.cloud import texttospeech
+from google.cloud.texttospeech_v1 import SynthesizeSpeechResponse
+from result import Ok, Err
 
 AUTH_JSON = "/private/su6-news-service-account.json"
 
 
-def to_str(bytes_or_string):
+def to_str(bytes_or_string: str | bytes) -> str:
     if isinstance(bytes_or_string, str):
         return bytes_or_string
     elif isinstance(bytes_or_string, bytes):
@@ -22,7 +23,7 @@ def to_str(bytes_or_string):
 
 
 class TTSModel:
-    def __init__(self):
+    def __init__(self) -> None:
         self.authenticate()
 
         self.client = texttospeech.TextToSpeechClient()
@@ -32,19 +33,20 @@ class TTSModel:
             ssml_gender=texttospeech.SsmlVoiceGender.FEMALE,
         )
 
-        self.audio_config = texttospeech.AudioConfig(
-            audio_encoding=texttospeech.AudioEncoding.MP3
-        )
+        self.audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
 
-    def authenticate(self):
+    def authenticate(self) -> None:
         # https://stackoverflow.com/questions/44328277/how-to-auth-to-google-cloud-using-service-account-in-python
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = AUTH_JSON
 
-    def process(self, original_text):
+    def process(self, original_text: bytes | str) -> SynthesizeSpeechResponse:
         if to_str(original_text).startswith("<speak>"):
-            input_text = texttospeech.SynthesisInput(ssml=original_text)
+            synth_option = dict(ssml=original_text)
         else:
-            input_text = texttospeech.SynthesisInput(text=original_text)
+            synth_option = dict(text=original_text)
+
+        # SynthesisInput is not typed properly so mypy think it expects a dict. So we use a dict and unpack it
+        input_text = texttospeech.SynthesisInput(**synth_option)
 
         return self.client.synthesize_speech(
             request={
@@ -55,44 +57,78 @@ class TTSModel:
         )
 
 
-def _synthesize_text(text):
+def _synthesize_text(text: str | bytes) -> bytes:
     """Synthesizes speech from the input string of text."""
-    tts = TTSModel()
+    tts_model = TTSModel()
     # Note: the voice can also be specified by name.
     # Names of voices can be retrieved with client.list_voices().
+    response = tts_model.process(text)
 
-    return tts.process(text).audio_content
+    return response.audio_content
 
 
-def simple_hash(string):
-    if isinstance(string, str):
-        string = string.encode("UTF-8")
-    return sha1(string).hexdigest()
+def simple_hash(string: str | bytes) -> str:
+    # make sure string is converted to bytes so sha1 can handle it AND mypy is happy
+    # string = AnyString but that confuses mypy for some reason
+    _bytes: bytes = string.encode("UTF-8") if isinstance(string, str) else string
+
+    return sha1(_bytes).hexdigest()
 
 
 dc = Index("/tmp/diskcache-tts")
 
-T = typing.TypeVar("T")
+T = typing.TypeVar("T")  # type for success
+E = typing.TypeVar("E")  # type for error
 
 
-@dataclass
-class Result(typing.Generic[T]):
-    value: T = None
-
-
-class Cached(Result):
+class Cached(Ok[T]):
     ...
 
 
-class Fresh(Result):
+class Fresh(Ok[T]):
     ...
 
 
-class Empty(Result):
-    ...
+class Empty(Err[E]):
+    def __init__(self) -> None:
+        # no value required on create,
+        # will be just None thanks to this super call
+        super().__init__(None)
 
 
-def synthesize_text(text: bytes | str) -> Result[bytes]:
+# like result.Result but with the three options from above
+CacheResult: typing.TypeAlias = Cached[T] | Fresh[T] | Empty[E]
+
+EncodingOptions = typing.Literal["b58", "b64", "none"] | None
+
+if typing.TYPE_CHECKING:
+
+    @typing.overload
+    def decode_from_encoding(possibly_encoded_text: str, encoding: typing.Literal["b58", "b64"]) -> bytes:
+        """
+        If an encoding is passed, bytes will be returned since possibly_encoded_text is an encoded string.
+        """
+
+    @typing.overload
+    def decode_from_encoding(possibly_encoded_text: str, encoding: typing.Literal["none", None]) -> str:
+        """
+        If no encoding is passed, str will be returned since possibly_encoded_text is plain text
+        (with _ replaced with ' ' because url reasons).
+        """
+
+
+def decode_from_encoding(possibly_encoded_text: str, encoding: EncodingOptions) -> bytes | str:
+    match encoding:
+        case "b64":
+            return b64_decode_url(possibly_encoded_text)  # -> bytes
+        case "b58":
+            return b58decode(possibly_encoded_text)  # -> bytes
+        case _:
+            # allow both 'none' (str) and None (NoneType) to make mypy happier with the overload
+            return possibly_encoded_text.replace("_", " ")  # -> str
+
+
+def synthesize_text(text: bytes | str) -> CacheResult[bytes, None]:
     if not text:
         return Empty()
 
@@ -109,7 +145,7 @@ def synthesize_text(text: bytes | str) -> Result[bytes]:
     return Fresh(content)
 
 
-def b64_decode_url(encoded_text: str):
+def b64_decode_url(encoded_text: str) -> bytes:
     """
     URL-safe base64 variant
     """
@@ -129,16 +165,9 @@ def b64_decode_url(encoded_text: str):
 
 
 def tts(
-    possibly_encoded_text: bytes | str,
-    encoding: typing.Literal["b58", "b64", None] = None,
-):
-    text: bytes | str | None = None
-    match encoding:
-        case "b64":
-            text: bytes = b64_decode_url(possibly_encoded_text)
-        case "b58":
-            text: bytes = b58decode(possibly_encoded_text)
-        case None:
-            text: str = possibly_encoded_text.replace("_", " ")
+    possibly_encoded_text: str,
+    encoding: EncodingOptions = None,
+) -> CacheResult[bytes, None]:
+    decoded = decode_from_encoding(possibly_encoded_text, encoding)
 
-    return synthesize_text(text)
+    return synthesize_text(decoded)

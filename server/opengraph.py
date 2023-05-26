@@ -23,7 +23,7 @@ OG_WIDTH = 1200
 OG_HEIGHT = 630
 
 
-def generate_image(ctx: Context):
+def generate_image(ctx: Context) -> bytes:
     options = {
         "format": "png",
         # opengraph image size is 1200x630:
@@ -37,10 +37,12 @@ def generate_image(ctx: Context):
     with open(ctx.get("template", "template.html")) as f:
         rendered = yatl.render(stream=f, context=ctx, delimiters="[[ ]]")
 
-    return imgkit.from_string(rendered, False, options=options)
+    # from_string returns bytes | bool but if output_path is False, bytes is returned.
+    image: bytes = imgkit.from_string(rendered, False, options=options)
+    return image
 
 
-def demo():
+def demo() -> None:
     img = generate_image(
         dict(
             img="https://news.su6.nl/static/icons/nu.svg",
@@ -56,23 +58,19 @@ def demo():
 if __name__ == "__main__":
     demo()
 
-
 A_DAY = 60 * 60 * 24
 
 
-def remove_old_tmp():
+def remove_old_tmp() -> None:
     for f in os.listdir("/tmp"):
         print("checking", f)
-        if (
-            f.startswith("__cached__")
-            and os.path.getmtime(os.path.join("/tmp", f)) < time.time() - A_DAY
-        ):
+        if f.startswith("__cached__") and os.path.getmtime(os.path.join("/tmp", f)) < time.time() - A_DAY:
             print("removing", f)
             os.remove(os.path.join("/tmp", f))
             continue
 
 
-def remove_all_existing_tmp():
+def remove_all_existing_tmp() -> None:
     print("Removing all old")
     # sources (according to copilot):
     #   https://stackoverflow.com/a/185941 and https://stackoverflow.com/a/185936
@@ -84,11 +82,11 @@ def remove_all_existing_tmp():
 remove_all_existing_tmp()
 
 
-def get_path(hash):
-    return os.path.join("/tmp", f"__cached__{hash}.png")
+def get_path(img_hash: str) -> str:
+    return os.path.join("/tmp", f"__cached__{img_hash}.png")
 
 
-def ctx_to_hash(ctx: Context):
+def ctx_to_hash(ctx: Context) -> str:
     ctx_str = json.dumps(collections.OrderedDict(sorted(ctx.items())))
     ctx_bytes = ctx_str.encode()
     ctx_hash = sha1(ctx_bytes)
@@ -96,13 +94,13 @@ def ctx_to_hash(ctx: Context):
     return ctx_hash.hexdigest()
 
 
-def ctx_to_hash_path(ctx: Context):
+def ctx_to_hash_path(ctx: Context) -> str:
     ctx_hex = ctx_to_hash(ctx)
 
     return get_path(ctx_hex)
 
 
-def _cache_generate(ctx: Context):
+def _cache_generate(ctx: Context) -> bytes:
     # cron: docker-compose restart nightly to empty old cache
 
     hash_path = ctx_to_hash_path(ctx)
@@ -122,7 +120,7 @@ def _cache_generate(ctx: Context):
     return img
 
 
-def _generate(ctx: Context):
+def _generate(ctx: Context) -> Response:
     resp = Response(_cache_generate(ctx))
     resp.headers["Content-Type"] = "image/png"
     return resp

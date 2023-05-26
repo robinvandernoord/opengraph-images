@@ -1,9 +1,10 @@
 import sys
+import typing
 
 from flask import Flask, request, abort, Response
 
 from .opengraph import _generate
-from .tts import tts, Fresh, Cached
+from .tts import tts, Fresh, Cached, EncodingOptions
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -15,12 +16,12 @@ app.url_map.strict_slashes = False
 
 
 @app.route("/", methods=["GET"])
-def home():
+def home() -> str:
     return "Possible Routes: /generate, /demo ; /tts"
 
 
 @app.route("/demo", methods=["GET"])
-def demo():
+def demo() -> Response:
     return _generate(
         {
             "title": "Door deze ontdekking gaat je telefoon straks tot twee keer zo lang mee",
@@ -31,7 +32,7 @@ def demo():
 
 
 @app.route("/", methods=["POST"])
-def generate():
+def generate() -> Response:
     data = request.get_json()
 
     return _generate(data)
@@ -43,7 +44,7 @@ def generate():
 
 
 @app.route("/tts", methods=["GET", "POST"])
-def home_tts():
+def home_tts() -> tuple[str, int]:
     return (
         "Please give plain text (separated by _ instead of spaces) "
         "or base64 (with '+' replaced with '.', '/' replaced with '_' and '=' replaced with '-') "
@@ -54,7 +55,7 @@ def home_tts():
     )
 
 
-def _tts(possibly_encoded_text, encoding):
+def _tts(possibly_encoded_text: str, encoding: EncodingOptions) -> Response | typing.Never:
     try:
         if not possibly_encoded_text:
             raise abort(404, "Missing Text!")
@@ -85,7 +86,7 @@ def _tts(possibly_encoded_text, encoding):
 
 
 @app.route("/tts/<_>", methods=["GET", "POST"])
-def generate_tts(_):
+def generate_tts(_: str) -> typing.Never:
     print("Received:", _, file=sys.stderr)
     abort(400, "you NEED to specify encoding type! (raw, b58 or b53")
 
@@ -97,15 +98,15 @@ def generate_tts(_):
 
 
 @app.route("/tts/raw/<text>", methods=["GET", "POST"])
-def generate_tts_raw(text):
+def generate_tts_raw(text: str) -> Response:
     return _tts(text, encoding=None)
 
 
 @app.route("/tts/b64/<encoded_text>", methods=["GET", "POST"])
-def generate_tts_b64(encoded_text):
+def generate_tts_b64(encoded_text: str) -> Response:
     return _tts(encoded_text, encoding="b64")
 
 
 @app.route("/tts/b58/<encoded_text>", methods=["GET", "POST"])
-def generate_tts_b58(encoded_text):
+def generate_tts_b58(encoded_text: str) -> Response:
     return _tts(encoded_text, encoding="b58")
