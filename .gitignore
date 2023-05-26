@@ -4,3 +4,4 @@ temp.*
 .idea/
 private/
 *.bak
+*.egg-info

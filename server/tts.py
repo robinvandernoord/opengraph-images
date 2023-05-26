@@ -2,13 +2,15 @@
 import os
 import typing
 from base64 import b64decode
-from hashlib import sha1
+from pathlib import Path
 
 from base58 import b58decode
 from diskcache import Index
 from google.cloud import texttospeech
 from google.cloud.texttospeech_v1 import SynthesizeSpeechResponse
 from result import Ok, Err
+
+from .helpers import simple_hash
 
 AUTH_JSON = "/private/su6-news-service-account.json"
 
@@ -65,14 +67,6 @@ def _synthesize_text(text: str | bytes) -> bytes:
     response = tts_model.process(text)
 
     return response.audio_content
-
-
-def simple_hash(string: str | bytes) -> str:
-    # make sure string is converted to bytes so sha1 can handle it AND mypy is happy
-    # string = AnyString but that confuses mypy for some reason
-    _bytes: bytes = string.encode("UTF-8") if isinstance(string, str) else string
-
-    return sha1(_bytes).hexdigest()
 
 
 dc = Index("/tmp/diskcache-tts")

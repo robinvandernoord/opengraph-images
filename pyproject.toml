@@ -16,6 +16,7 @@ dev = [
     "black",
     "mypy",
     "ruff",
+    "bandit",
 ]
 
 [tool.black]
@@ -38,6 +39,13 @@ unfixable = [
     "F401",
 ]
 extend-exclude = ["*.bak/"]
+
+[tool.bandit]
+# bandit -c pyproject.toml -r .
+exclude_dirs = ["venv.bak", "venv"]
+skips = [
+    "B108"  # hard coded /tmp/... files are fine for me tbh
+]
 
 
 # make this a meta package: not a library but simply allow me to run `pip install .[dev]`

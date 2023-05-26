@@ -3,12 +3,13 @@ import json
 import os
 import time
 import typing
-from hashlib import sha1
 
 import imgkit
 import yatl
 from flask import Response
 from typing_extensions import NotRequired
+
+from .helpers import simple_hash
 
 
 class Context(typing.TypedDict):
@@ -88,10 +89,7 @@ def get_path(img_hash: str) -> str:
 
 def ctx_to_hash(ctx: Context) -> str:
     ctx_str = json.dumps(collections.OrderedDict(sorted(ctx.items())))
-    ctx_bytes = ctx_str.encode()
-    ctx_hash = sha1(ctx_bytes)
-
-    return ctx_hash.hexdigest()
+    return simple_hash(ctx_str)
 
 
 def ctx_to_hash_path(ctx: Context) -> str:
