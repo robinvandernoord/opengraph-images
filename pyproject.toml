@@ -17,6 +17,9 @@ dev = [
     "mypy",
     "ruff",
     "bandit",
+    "isort",
+    "typer[all]",
+    "plumbum",
 ]
 
 [tool.black]
@@ -28,8 +31,23 @@ extend-exclude = '''
 # in the root of the project.
 (
   ^.*\.bak\/.+    # ignore every .bak directory
+  ^.*venv.+\/.+    # ignore every venv directory
 )
 '''
+
+[tool.mypy]
+python_version = "3.11"
+
+# `some: int = None` looks nicer than `some: int | None = None` and pycharm still understands it
+no_implicit_optional = false
+# same as above (thrown if no_implicit_optional = False)
+strict_optional = false
+# 3rd party packages may not be typed, that's not my fault!
+ignore_missing_imports = true
+# kinda hypocritical to disable Optional and still enable strict, but I do agree with some other strict rules.
+strict = true
+# fixes defs with clear return var (doesn't seem to work for __init__ which is the most obvious case)
+# check_untyped_defs = True
 
 [tool.ruff]
 target-version = "py311"
@@ -38,7 +56,7 @@ unfixable = [
     # Don't touch unused imports
     "F401",
 ]
-extend-exclude = ["*.bak/"]
+extend-exclude = ["*.bak/", "venv*/"]
 
 [tool.bandit]
 # bandit -c pyproject.toml -r .
