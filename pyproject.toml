@@ -13,14 +13,12 @@ dependencies = { file = ["requirements.txt"] }
 
 [project.optional-dependencies]
 dev = [
-    "black",
-    "mypy",
-    "ruff",
-    "bandit",
-    "isort",
-    "typer[all]",
-    "plumbum",
+    "su6[all]"
 ]
+
+[tool.su6]
+directory = "server"
+exclude = ["pytest"]
 
 [tool.black]
 target-version = ["py311"]
