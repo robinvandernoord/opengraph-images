@@ -7,6 +7,7 @@ from diskcache import Index
 from google.cloud import texttospeech
 from google.cloud.texttospeech_v1 import SynthesizeSpeechResponse
 from result import Err, Ok
+from result.result import E, T
 
 from .helpers import simple_hash
 
@@ -69,8 +70,9 @@ def _synthesize_text(text: str | bytes) -> bytes:
 
 dc = Index("/tmp/diskcache-tts")
 
-T = typing.TypeVar("T")  # type for success
-E = typing.TypeVar("E")  # type for error
+
+# T = typing.TypeVar("T")  # type for success
+# E = typing.TypeVar("E", typing.Any, None)  # type for error
 
 
 class Cached(Ok[T]):
@@ -85,7 +87,8 @@ class Empty(Err[E]):
     def __init__(self) -> None:
         # no value required on create,
         # will be just None thanks to this super call
-        super().__init__(None)
+        nothing = typing.cast(E, None)  # make mypy happy by telling it None is of type E
+        super().__init__(nothing)
 
 
 # like result.Result but with the three options from above
