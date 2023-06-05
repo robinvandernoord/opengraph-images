@@ -29,7 +29,7 @@ where = []
 [tool.su6]
 directory = "server"
 include = []
-exclude = ["pytest"]
+exclude = ["pytest", "pydocstyle"]
 
 [tool.black]
 target-version = ["py311"]
